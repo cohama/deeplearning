@@ -3,7 +3,7 @@ extern crate nalgebra;
 use self::nalgebra::*;
 use functions::{sigmoid};
 
-pub struct ForwardNet {
+struct ForwardNet {
     w1: Matrix2x3<f64>,
     b1: RowVector3<f64>,
     w2: Matrix3x2<f64>,
@@ -30,14 +30,10 @@ impl ForwardNet {
 
     fn forward(&self, input: &RowVector2<f64>) -> RowVector2<f64> {
         let a1 = input * self.w1 + self.b1;
-        println!("a1: {:?}", a1);
         let z1 = a1.map(sigmoid);
-        println!("z1: {:?}", z1);
         let a2 = z1 * self.w2 + self.b2;
-        println!("a2: {:?}", a2);
         let z2 = a2.map(sigmoid);
         let a3 = z2 * self.w3 + self.b3;
-        println!("a3: {:?}", a3);
         a3
     }
 }
