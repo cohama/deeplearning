@@ -1,6 +1,10 @@
 [package]
+authors = ["cohama <cohama@live.jp>"]
 name = "deeplearning"
 version = "0.1.0"
-authors = ["cohama <cohama@live.jp>"]
 
 [dependencies]
+nalgebra = "0.12.3"
+
+[dependencies.rsplot]
+path = "../rsplot"
