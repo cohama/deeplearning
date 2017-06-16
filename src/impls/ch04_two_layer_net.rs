@@ -3,7 +3,8 @@ extern crate nalgebra;
 use functions::{sigmoid, softmax_v};
 use self::nalgebra::{DMatrix, RowDVector};
 
-struct TwoLayerNet {
+#[allow(dead_code)]
+pub struct TwoLayerNet {
     input_size: usize,
     hidden_size: usize,
     output_size: usize,
@@ -14,7 +15,7 @@ struct TwoLayerNet {
 }
 
 impl TwoLayerNet {
-    fn new(input_size: usize, hidden_size: usize, output_size: usize) -> TwoLayerNet {
+    pub fn new(input_size: usize, hidden_size: usize, output_size: usize) -> TwoLayerNet {
         TwoLayerNet {
             input_size,
             hidden_size,
@@ -26,7 +27,7 @@ impl TwoLayerNet {
         }
     }
 
-    fn predict(&self, input: &RowDVector<f64>) -> RowDVector<f64> {
+    pub fn predict(&self, input: &RowDVector<f64>) -> RowDVector<f64> {
         let a1 = input * &self.w1 + &self.b1;
         let z1 = a1.map(sigmoid);
         let a2 = z1 * &self.w2 + &self.b2;
@@ -35,7 +36,7 @@ impl TwoLayerNet {
         // RowDVector::from_data(y)
     }
 
-    fn loss(&self, input: &RowDVector<f64>, teacher: &RowDVector<f64>) {
+    pub fn loss(&self, input: &RowDVector<f64>, teacher: &RowDVector<f64>) {
         let y = self.predict(input);
 
     }

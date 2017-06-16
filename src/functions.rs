@@ -1,3 +1,7 @@
+extern crate nalgebra;
+extern crate typenum;
+
+
 pub fn sigmoid(x: f64) -> f64 {
     1.0 / (1.0 + (-x).exp())
 }
@@ -28,3 +32,4 @@ pub fn softmax_v(xs: &[f64]) -> Vec<f64> {
     softmax(&xs, v.as_mut_slice());
     v
 }
+
