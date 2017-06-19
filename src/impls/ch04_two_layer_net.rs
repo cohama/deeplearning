@@ -1,43 +1,56 @@
 extern crate nalgebra;
+extern crate typenum;
+extern crate num_traits;
 
 use functions::{sigmoid, softmax_v};
-use self::nalgebra::{DMatrix, RowDVector};
+use self::nalgebra::{DimName, Matrix, MatrixNM, RowVectorN, U10, U50};
+use self::typenum::{U784};
+use mnist::{cross_entropy_error};
+use self::num_traits::identities::Zero;
+
+type InputSize = U784;
+type HiddenSize = U50;
+type OutputSize = U10;
 
 #[allow(dead_code)]
 pub struct TwoLayerNet {
-    input_size: usize,
-    hidden_size: usize,
-    output_size: usize,
-    w1: DMatrix<f64>,
-    b1: RowDVector<f64>,
-    w2: DMatrix<f64>,
-    b2: RowDVector<f64>,
+    w1: MatrixNM<f64, InputSize, HiddenSize>,
+    b1: RowVectorN<f64, HiddenSize>,
+    w2: MatrixNM<f64, HiddenSize, OutputSize>,
+    b2: RowVectorN<f64, OutputSize>,
 }
 
 impl TwoLayerNet {
-    pub fn new(input_size: usize, hidden_size: usize, output_size: usize) -> TwoLayerNet {
+    pub fn new() -> TwoLayerNet {
         TwoLayerNet {
-            input_size,
-            hidden_size,
-            output_size,
-            w1: DMatrix::new_random(input_size, hidden_size),
-            b1: RowDVector::from_element(hidden_size, 0.0),
-            w2: DMatrix::new_random(hidden_size, output_size),
-            b2: RowDVector::from_element(output_size, 0.0),
+            w1: MatrixNM::new_random(),
+            b1: RowVectorN::zero(),
+            w2: MatrixNM::new_random(),
+            b2: RowVectorN::zero(),
         }
     }
 
-    pub fn predict(&self, input: &RowDVector<f64>) -> RowDVector<f64> {
+    pub fn predict(&self, input: &RowVectorN<f64, InputSize>) -> RowVectorN<f64, OutputSize> {
         let a1 = input * &self.w1 + &self.b1;
         let z1 = a1.map(sigmoid);
         let a2 = z1 * &self.w2 + &self.b2;
         let y = softmax_v(a2.as_slice());
-        RowDVector::from_iterator(self.output_size, y.into_iter())
+        RowVectorN::from_iterator(y.into_iter())
         // RowDVector::from_data(y)
     }
 
-    pub fn loss(&self, input: &RowDVector<f64>, teacher: &RowDVector<f64>) {
-        let y = self.predict(input);
+    pub fn loss(&self, input: &RowVectorN<f64, InputSize>, label: &RowVectorN<f64, OutputSize>) -> f64 {
+        let output = self.predict(input);
+        cross_entropy_error(&output, &label)
+    }
 
+    fn num_gradient<R, C, S, F>(f: F, x: &Matrix<f64, R, C, S>)
+        where R: DimName,
+              C: DimName,
+              S: nalgebra::storage::OwnedStorage<f64, R, C>,
+              S::Alloc: nalgebra::allocator::OwnedAllocator<f64, R, C, S>,
+              F: Fn(f64) -> f64
+    {
+        let h = 1e-5;
     }
 }

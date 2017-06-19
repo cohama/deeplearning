@@ -61,15 +61,13 @@ pub fn label_as_onehot(label: &VectorR<u8>) -> MatrixRx10<u8> {
     MatrixRx10::from_column_slice(vv.as_slice())
 }
 
-pub fn cross_entropy_error<R, C, S1, S2>(output: &Matrix<f64, R, C, S1>, label: &Matrix<u8, R, C, S2>) -> f64
+pub fn cross_entropy_error<R, C, S>(output: &Matrix<f64, R, C, S>, label: &Matrix<f64, R, C, S>) -> f64
     where R: DimName,
           C: DimName,
-          S1: nalgebra::storage::OwnedStorage<f64, R, C>,
-          S2: nalgebra::storage::OwnedStorage<u8, R, C>,
-          S1::Alloc: nalgebra::allocator::OwnedAllocator<f64, R, C, S1>,
-          S2::Alloc: nalgebra::allocator::OwnedAllocator<u8, R, C, S2>,
+          S: nalgebra::storage::OwnedStorage<f64, R, C>,
+          S::Alloc: nalgebra::allocator::OwnedAllocator<f64, R, C, S>,
 {
-    let label: Matrix<f64, R, C, S1> = convert_ref(label);
+    let label: Matrix<f64, R, C, S> = convert_ref(label);
     let ln_output = output.map(|x|(x + 1e-7).ln());
     let y: f64 = label.component_mul(&ln_output).iter().sum();
     -y / label.nrows() as f64
@@ -95,17 +93,17 @@ mod tests {
             0., 0., 0., 0., 0., 0., 0., 0., 0., 1.,
         ]);
         let label = MatrixRx10::from_row_slice(&[
-            1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+            0., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+            0., 0., 1., 0., 0., 0., 0., 0., 0., 0.,
+            0., 0., 0., 1., 0., 0., 0., 0., 0., 0.,
+            0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
+            0., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
+            0., 0., 0., 0., 0., 0., 1., 0., 0., 0.,
+            0., 0., 0., 0., 0., 0., 0., 1., 0., 0.,
+            0., 0., 0., 0., 0., 0., 0., 0., 1., 0.,
+            0., 0., 0., 0., 0., 0., 0., 0., 0., 1.,
+            0., 0., 0., 0., 0., 0., 0., 0., 0., 1.,
         ]);
         let ans = cross_entropy_error(&output, &label);
         // assert_eq!(ans, 1.0);
