@@ -1,8 +1,7 @@
 extern crate nalgebra;
 
 use self::nalgebra::{MatrixNM, RowVectorN, U2, U3};
-use functions::softmax_v;
-use mnist::cross_entropy_error;
+use functions::{softmax_v, cross_entropy_error};
 
 struct SimpleNet {
     w: MatrixNM<f64, U2, U3>,
