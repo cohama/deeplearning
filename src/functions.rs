@@ -1,7 +1,9 @@
 extern crate nalgebra;
 extern crate typenum;
+extern crate num_traits;
 
 use self::nalgebra::{DimName, Matrix};
+use self::num_traits::identities::Zero;
 
 pub fn sigmoid(x: f64) -> f64 {
     1.0 / (1.0 + (-x).exp())
@@ -49,13 +51,37 @@ pub fn max_index(xs: &[f64]) -> usize {
     }).0
 }
 
+pub fn numerical_gradient<F, R, C, S>(f: F, xs: &Matrix<f64, R, C, S>) -> Matrix<f64, R, C, S>
+    where F: Fn(&Matrix<f64, R, C, S>) -> f64,
+          R: DimName,
+          C: DimName,
+          S: nalgebra::storage::OwnedStorage<f64, R, C>,
+          S::Alloc: nalgebra::allocator::OwnedAllocator<f64, R, C, S>,
+{
+    let h = 1e-4;
+    let mut ans = Matrix::zero();
+    for i in 0..xs.nrows() {
+        for j in 0..xs.ncols() {
+            let mut xs2 = xs.clone();
+            xs2[(i, j)] = xs[(i, j)] + h;
+            let y1 = f(&xs2);
+            xs2[(i, j)] = xs[(i, j)] - h;
+            let y0 = f(&xs2);
+            ans[(i, j)] = (y1 - y0) / (2.*h)
+        }
+    }
+    ans
+}
+
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
+    use self::nalgebra::{U10, U11, MatrixNM};
     #[test]
     fn test_cross_entropy_error() {
-        let output = MatrixRx10::from_row_slice(&[
+        let output = MatrixNM::<f64, U11, U10>::from_row_slice(&[
             1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
             0., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
             0., 0., 1., 0., 0., 0., 0., 0., 0., 0.,
@@ -68,7 +94,7 @@ mod tests {
             0., 0., 0., 0., 0., 0., 0., 0., 0., 1.,
             0., 0., 0., 0., 0., 0., 0., 0., 0., 1.,
         ]);
-        let label = MatrixRx10::from_row_slice(&[
+        let label = MatrixNM::<f64, U11, U10>::from_row_slice(&[
             1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
             0., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
             0., 0., 1., 0., 0., 0., 0., 0., 0., 0.,
@@ -85,7 +111,7 @@ mod tests {
         // assert_eq!(ans, 1.0);
         assert!(ans.abs() < 1e-7, "Expected |ans| < 1e-7 but actual ans is {}", ans);
 
-        let output = MatrixRx10::from_row_slice(&[
+        let output = MatrixNM::<f64, U11, U10>::from_row_slice(&[
             0., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
             1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
             1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
@@ -103,24 +129,24 @@ mod tests {
         assert!((ans + (1e-7f64).ln()).abs() < 1e-07, "Expected {} but actual is {}", -(1e-7f64.ln()), ans);
     }
 
-    #[ignore]
-    #[test]
-    fn test_load_image() {
-        let ns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-        assert_eq!(format!("{:?}", load_image("/home/cohama/proj/rust/deeplearning/data/mnist/train-images-idx3-ubyte", &ns).unwrap().as_slice().iter().map(|x|format!("{:X}", x)).collect::<Vec<_>>()), "");
-    }
-
-    #[ignore]
-    #[test]
-    fn test_load_label() {
-        let ns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-        let v = load_label("/home/cohama/proj/rust/deeplearning/data/mnist/train-labels-idx1-ubyte", &ns).unwrap();
-        // assert_eq!(format!("{:?}", load_label("/home/cohama/proj/rust/deeplearning/data/mnist/train-labels-idx1-ubyte", &ns).unwrap()), "");
-        assert_eq!(format!("{:?}", label_as_onehot(&v)), "");
-    }
     #[test]
     fn test_max_index() {
         assert_eq!(max_index(&[]), 0);
         assert_eq!(max_index(&[1.0, 2.0, 1.5]), 1);
+    }
+
+    use self::nalgebra::{U2, RowVectorN};
+    fn function_2(xs: &RowVectorN<f64, U2>) -> f64 {
+        let x = xs[(0, 0)];
+        let y = xs[(0, 1)];
+        x*x + y*y
+    }
+
+    #[test]
+    fn test_numerial_gradient() {
+        assert_eq! {
+            numerical_gradient(function_2, &RowVectorN::from_row_slice(&[3., 4.])),
+            RowVectorN::from_row_slice(&[6.00000000000378, 7.999999999999119])
+        };
     }
 }

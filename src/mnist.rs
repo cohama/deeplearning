@@ -59,3 +59,24 @@ pub fn label_as_onehot(label: &VectorR<u8>) -> MatrixRx10<u8> {
     MatrixRx10::from_column_slice(vv.as_slice())
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[ignore]
+    #[test]
+    fn test_load_image() {
+        let ns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        assert_eq!(format!("{:?}", load_image("/home/cohama/proj/rust/deeplearning/data/mnist/train-images-idx3-ubyte", &ns).unwrap().as_slice().iter().map(|x|format!("{:X}", x)).collect::<Vec<_>>()), "");
+    }
+
+    #[ignore]
+    #[test]
+    fn test_load_label() {
+        let ns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let v = load_label("/home/cohama/proj/rust/deeplearning/data/mnist/train-labels-idx1-ubyte", &ns).unwrap();
+        // assert_eq!(format!("{:?}", load_label("/home/cohama/proj/rust/deeplearning/data/mnist/train-labels-idx1-ubyte", &ns).unwrap()), "");
+        assert_eq!(format!("{:?}", label_as_onehot(&v)), "");
+    }
+}
