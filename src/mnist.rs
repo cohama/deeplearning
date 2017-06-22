@@ -2,17 +2,13 @@ extern crate nalgebra;
 extern crate typenum;
 
 use self::typenum::{U784};
-use self::nalgebra::{MatrixNM, VectorN, U10, U11};
+use self::nalgebra::{DVector, Matrix, MatrixVec, U10, Dynamic};
 use std::io::Result as IoResult;
 use std::io::{Seek, SeekFrom, Read};
 use std::fs::File;
 
-pub type USampleSize = U11;
-pub const SAMPLE_SIZE: i32 = 11;
-
-pub type MatrixRx784<N> = MatrixNM<N, USampleSize, U784>;
-pub type MatrixRx10<N> = MatrixNM<N, USampleSize, U10>;
-pub type VectorR<N> = VectorN<N, USampleSize>;
+pub type MatrixXx784f64 = Matrix<f64, Dynamic, U784, MatrixVec<f64, Dynamic, U784>>;
+pub type MatrixXx10f64 = Matrix<f64, Dynamic, U10, MatrixVec<f64, Dynamic, U10>>;
 // pub struct Mnist {
 //     pub train_image: MatrixRx784<u8>,
 //     pub train_label: MatrixRx10<u8>,
@@ -24,39 +20,34 @@ pub type VectorR<N> = VectorN<N, USampleSize>;
 // }
 
 
-// pub fn load_image(path: &str, indice: &[usize]) -> IoResult<MatrixRx784<u8>> {
-pub fn load_image(path: &str, indice: &[usize]) -> IoResult<MatrixRx784<u8>> {
+pub fn load_image(path: &str, num_of_images: usize) -> IoResult<MatrixXx784f64> {
     let mut file = File::open(path)?;
-    let mut vv = vec![];
-    for n in indice {
-        let mut v = vec![];
-        file.seek(SeekFrom::Start((16 + n * 784) as u64))?;
-        let _ = file.by_ref().take(784).read_to_end(&mut v);
-        vv.append(&mut v);
-    }
-    Ok(MatrixRx784::from_column_slice(vv.as_slice()))
-}
-
-pub fn load_label(path: &str, indice: &[usize]) -> IoResult<VectorR<u8>> {
-    let mut file = File::open(path)?;
+    file.seek(SeekFrom::Start(16))?;
     let mut v = vec![];
-    for n in indice {
-        file.seek(SeekFrom::Start((16 + n) as u64))?;
-        let mut buf = [0; 1];
-        file.by_ref().read(&mut buf)?;
-        v.push(buf[0]);
-    }
-    Ok(VectorR::from_column_slice(v.as_slice()))
+    let _ = file.take(784 * num_of_images as u64).read_to_end(&mut v);
+    Ok(MatrixXx784f64::from_row_slice(num_of_images, v.iter().map(|&x| {
+        if x != 0 {println!("x: {}", x)}
+        x as f64
+    }).collect::<Vec<f64>>().as_slice()))
+    // Ok(MatrixXx784f64::from_row_slice(num_of_images, v.iter().map(|x| *x as f64).collect::<Vec<f64>>().as_slice()))
 }
 
-pub fn label_as_onehot(label: &VectorR<u8>) -> MatrixRx10<u8> {
+pub fn load_label(path: &str, num_of_images: usize) -> IoResult<DVector<u8>> {
+    let mut file = File::open(path)?;
+    file.seek(SeekFrom::Start(16))?;
+    let mut v = vec![];
+    let _ = file.take(num_of_images as u64).read_to_end(&mut v);
+    Ok(DVector::from_column_slice(num_of_images, v.as_slice()))
+}
+
+pub fn label_as_onehot(label: &DVector<u8>) -> MatrixXx10f64 {
     let mut vv = vec![];
     for v in label.iter() {
-        let mut onehot = [0; 10];
-        onehot[*v as usize] = 1;
+        let mut onehot = [0.; 10];
+        onehot[*v as usize] = 1.;
         vv.extend_from_slice(&mut onehot);
     }
-    MatrixRx10::from_column_slice(vv.as_slice())
+    MatrixXx10f64::from_row_slice(label.nrows(), vv.as_slice())
 }
 
 
@@ -64,19 +55,19 @@ pub fn label_as_onehot(label: &VectorR<u8>) -> MatrixRx10<u8> {
 mod tests {
     use super::*;
 
-    #[ignore]
     #[test]
     fn test_load_image() {
-        let ns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-        assert_eq!(format!("{:?}", load_image("/home/cohama/proj/rust/deeplearning/data/mnist/train-images-idx3-ubyte", &ns).unwrap().as_slice().iter().map(|x|format!("{:X}", x)).collect::<Vec<_>>()), "");
+        let m = load_image("/home/cohama/proj/rust/deeplearning/data/mnist/train-images-idx3-ubyte", 10).unwrap();
+        assert_eq!(m[(0, 152)], 3.0);
+        assert_eq!(m[(0, 153)], 18.0);
+        assert_eq!(m[(0, 154)], 18.0);
+        assert_eq!(m[(0, 155)], 18.0);
     }
 
-    #[ignore]
     #[test]
     fn test_load_label() {
-        let ns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-        let v = load_label("/home/cohama/proj/rust/deeplearning/data/mnist/train-labels-idx1-ubyte", &ns).unwrap();
-        // assert_eq!(format!("{:?}", load_label("/home/cohama/proj/rust/deeplearning/data/mnist/train-labels-idx1-ubyte", &ns).unwrap()), "");
-        assert_eq!(format!("{:?}", label_as_onehot(&v)), "");
+        let v = load_label("/home/cohama/proj/rust/deeplearning/data/mnist/train-labels-idx1-ubyte", 10).unwrap();
+        assert_eq!(v.as_slice(), [1, 4, 3, 5, 3, 6, 1, 7, 2, 8]);
+        let _ = label_as_onehot(&v);
     }
 }
