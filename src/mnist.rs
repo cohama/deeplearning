@@ -1,49 +1,29 @@
-extern crate nalgebra;
-extern crate typenum;
-
-use self::typenum::{U784};
-use self::nalgebra::{DVector, Matrix, MatrixVec, U10, Dynamic};
 use std::io::Result as IoResult;
 use std::io::{Seek, SeekFrom, Read};
 use std::fs::File;
 
-pub type MatrixXx784f64 = Matrix<f64, Dynamic, U784, MatrixVec<f64, Dynamic, U784>>;
-pub type MatrixXx10f64 = Matrix<f64, Dynamic, U10, MatrixVec<f64, Dynamic, U10>>;
-// pub struct Mnist {
-//     pub train_image: MatrixRx784<u8>,
-//     pub train_label: MatrixRx10<u8>,
-//     pub test_image: MatrixRx784<u8>,
-//     pub test_label: MatrixRx10<u8>,
-// }
-
-// pub fn load_mnist_data() -> Mnist {
-// }
-
-
-pub fn load_image(path: &str, num_of_images: usize) -> IoResult<MatrixXx784f64> {
+pub fn load_image(path: &str, num_of_images: usize) -> IoResult<Vec<f64>> {
     let mut file = File::open(path)?;
     file.seek(SeekFrom::Start(16))?;
     let mut v = vec![];
-    let _ = file.take(784 * num_of_images as u64).read_to_end(&mut v);
-    Ok(MatrixXx784f64::from_row_slice(num_of_images, v.iter().map(|x| *x as f64).collect::<Vec<f64>>().as_slice()))
+    file.take(784 * num_of_images as u64).read_to_end(&mut v)?;
+    Ok(v.iter().map(|x| *x as f64).collect())
 }
 
-pub fn load_label(path: &str, num_of_images: usize) -> IoResult<DVector<u8>> {
+pub fn load_label(path: &str, num_of_images: usize) -> IoResult<Vec<u8>> {
     let mut file = File::open(path)?;
     file.seek(SeekFrom::Start(8))?;
     let mut v = vec![];
-    let _ = file.take(num_of_images as u64).read_to_end(&mut v);
-    Ok(DVector::from_row_slice(num_of_images, v.as_slice()))
+    file.take(num_of_images as u64).read_to_end(&mut v)?;
+    Ok(v)
 }
 
-pub fn label_as_onehot(label: &DVector<u8>) -> MatrixXx10f64 {
-    let mut vv = vec![];
-    for v in label.iter() {
+pub fn label_as_onehot(label: &[u8]) -> Vec<[f64; 10]> {
+    label.iter().map(|&x| {
         let mut onehot = [0.; 10];
-        onehot[*v as usize] = 1.;
-        vv.extend_from_slice(&mut onehot);
-    }
-    MatrixXx10f64::from_row_slice(label.nrows(), vv.as_slice())
+        onehot[x as usize] = 1.;
+        onehot
+    }).collect()
 }
 
 
@@ -54,16 +34,13 @@ mod tests {
     #[test]
     fn test_load_image() {
         let m = load_image("/home/cohama/proj/rust/deeplearning/data/mnist/train-images-idx3-ubyte", 10).unwrap();
-        assert_eq!(m[(0, 152)], 3.0);
-        assert_eq!(m[(0, 153)], 18.0);
-        assert_eq!(m[(0, 154)], 18.0);
-        assert_eq!(m[(0, 155)], 18.0);
+        assert_eq!(m[152..156], [3., 18., 18., 18.]);
     }
 
     #[test]
     fn test_load_label() {
         let v = load_label("/home/cohama/proj/rust/deeplearning/data/mnist/train-labels-idx1-ubyte", 10).unwrap();
-        assert_eq!(v.as_slice(), [5, 0, 4, 1, 9, 2, 1, 3, 1, 4]);
+        assert_eq!(v, [5, 0, 4, 1, 9, 2, 1, 3, 1, 4]);
         let _ = label_as_onehot(&v);
     }
 }
