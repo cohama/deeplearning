@@ -25,19 +25,15 @@ pub fn load_image(path: &str, num_of_images: usize) -> IoResult<MatrixXx784f64> 
     file.seek(SeekFrom::Start(16))?;
     let mut v = vec![];
     let _ = file.take(784 * num_of_images as u64).read_to_end(&mut v);
-    Ok(MatrixXx784f64::from_row_slice(num_of_images, v.iter().map(|&x| {
-        if x != 0 {println!("x: {}", x)}
-        x as f64
-    }).collect::<Vec<f64>>().as_slice()))
-    // Ok(MatrixXx784f64::from_row_slice(num_of_images, v.iter().map(|x| *x as f64).collect::<Vec<f64>>().as_slice()))
+    Ok(MatrixXx784f64::from_row_slice(num_of_images, v.iter().map(|x| *x as f64).collect::<Vec<f64>>().as_slice()))
 }
 
 pub fn load_label(path: &str, num_of_images: usize) -> IoResult<DVector<u8>> {
     let mut file = File::open(path)?;
-    file.seek(SeekFrom::Start(16))?;
+    file.seek(SeekFrom::Start(8))?;
     let mut v = vec![];
     let _ = file.take(num_of_images as u64).read_to_end(&mut v);
-    Ok(DVector::from_column_slice(num_of_images, v.as_slice()))
+    Ok(DVector::from_row_slice(num_of_images, v.as_slice()))
 }
 
 pub fn label_as_onehot(label: &DVector<u8>) -> MatrixXx10f64 {
@@ -67,7 +63,7 @@ mod tests {
     #[test]
     fn test_load_label() {
         let v = load_label("/home/cohama/proj/rust/deeplearning/data/mnist/train-labels-idx1-ubyte", 10).unwrap();
-        assert_eq!(v.as_slice(), [1, 4, 3, 5, 3, 6, 1, 7, 2, 8]);
+        assert_eq!(v.as_slice(), [5, 0, 4, 1, 9, 2, 1, 3, 1, 4]);
         let _ = label_as_onehot(&v);
     }
 }
