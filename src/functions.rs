@@ -40,7 +40,6 @@ pub fn numerical_gradient<F>(f: &F, xs: &mut [f64], out: &mut [f64])
     where F: Fn() -> f64
 {
     let h = 1e-4;
-    let mut i = 0;
     for (x, o) in xs.iter_mut().zip(out.iter_mut()) {
         let tmp = *x; // copy
         *x = tmp + h;
@@ -49,8 +48,6 @@ pub fn numerical_gradient<F>(f: &F, xs: &mut [f64], out: &mut [f64])
         let y0 = f();
         *o = (y1 - y0) / (2.*h);
         *x = tmp;
-        i += 1;
-        println!("{}", i);
     }
 }
 
