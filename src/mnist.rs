@@ -18,12 +18,14 @@ pub fn load_label(path: &str, num_of_images: usize) -> IoResult<Vec<u8>> {
     Ok(v)
 }
 
-pub fn label_as_onehot(label: &[u8]) -> Vec<[f64; 10]> {
-    label.iter().map(|&x| {
+pub fn label_as_onehot(label: &[u8]) -> Vec<f64> {
+    let mut out = vec![];
+    for &x in label.iter() {
         let mut onehot = [0.; 10];
         onehot[x as usize] = 1.;
-        onehot
-    }).collect()
+        out.extend_from_slice(&onehot);
+    }
+    out
 }
 
 

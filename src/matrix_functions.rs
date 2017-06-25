@@ -1,6 +1,8 @@
 
 use ndarray;
-use ndarray::{ArrayBase};
+use ndarray::{ArrayBase, Array, Array2};
+
+use functions::softmax;
 
 #[inline]
 pub fn cross_entropy_error<S, D>(output: &ArrayBase<S, D>, label: &ArrayBase<S, D>) -> f64
@@ -12,25 +14,38 @@ pub fn cross_entropy_error<S, D>(output: &ArrayBase<S, D>, label: &ArrayBase<S, 
     -y / label.shape()[0] as f64
 }
 
-// pub fn pick_columns<R, C, S>(m: &Matrix<f64, R, C, S>, indices: &[usize]) -> Matrix<f64, R, Dynamic, MatrixVec<f64, R, Dynamic>>
-//     where R: DimName,
-//           C: Dim,
-//           S: Storage<f64, R, C>,
-//           S::Alloc: Allocator<f64, R, U1>,
-// {
-//     let colvecs = indices.iter().map(|&i| m.fixed_columns::<U1>(i)).collect::<Vec<_>>();
-//     Matrix::<f64, R, Dynamic, MatrixVec<f64, R, Dynamic>>::from_columns(&colvecs)
-// }
+pub fn pick_rows<S, T>(a: &ArrayBase<S, ndarray::Ix2>, indice: &[usize]) -> Array2<T>
+    where S: ndarray::Data<Elem=T>,
+          T: Copy,
+{
+    Array::from_shape_fn((indice.len(), a.cols()), |(i, j)| {
+        a[[indice[i], j]]
+    })
+}
 
-// pub fn pick_rows<R, C, S>(m: &Matrix<f64, R, C, S>, indices: &[usize]) -> Matrix<f64, Dynamic, C, MatrixVec<f64, Dynamic, C>>
-//     where R: Dim,
-//           C: DimName,
-//           S: Storage<f64, R, C>,
-//           S::Alloc: Allocator<f64, U1, C>,
-// {
-//     let rowvecs = indices.iter().map(|&i| m.fixed_rows::<U1>(i)).collect::<Vec<_>>();
-//     Matrix::<f64, Dynamic, C, MatrixVec<f64, Dynamic, C>>::from_rows(&rowvecs)
-// }
+pub fn numerical_gradient_ndarray<F>(f: &F, xs: &mut Array2<f64>, out: &mut Array2<f64>)
+    where F: Fn() -> f64
+{
+    let h = 1e-4;
+    // println!("xs.shape: ({}, {}), out.shape: ({}, {})", xs.rows(), xs.cols(), out.rows(), out.cols());
+    for (x, o) in xs.iter_mut().zip(out.iter_mut()) {
+        let tmp = *x; // copy
+        *x = tmp + h;
+        let y1 = f();
+        *x = tmp - h;
+        let y0 = f();
+        *o = (y1 - y0) / (2.*h);
+        *x = tmp;
+    }
+}
+
+pub fn softmax_rowwise(xs: &Array2<f64>) -> Array2<f64> {
+    let mut ys = xs.clone();
+    for (mut y, x) in ys.genrows_mut().into_iter().zip(xs.genrows()) {
+        softmax(x.as_slice().unwrap(), y.as_slice_mut().unwrap());
+    }
+    ys
+}
 
 #[cfg(test)]
 mod tests {
@@ -88,43 +103,22 @@ mod tests {
         assert_relative_eq!(ans, -(1e-7f64).ln(), epsilon = 1e-7);
     }
 
-//     fn function_2(xs: &RowVectorN<f64, U2>) -> f64 {
-//         let x = xs[(0, 0)];
-//         let y = xs[(0, 1)];
-//         x*x + y*y
-//     }
 
-//     #[test]
-//     fn test_numerial_gradient() {
-//         assert_eq! {
-//             numerical_gradient(function_2, &RowVectorN::from_row_slice(&[3., 4.])),
-//             RowVectorN::from_row_slice(&[6.00000000000378, 7.999999999999119])
-//         };
-//     }
+    #[test]
+    fn test_pick_rows() {
+        let b = Array2::<i32>::from_shape_vec((4, 3), vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).unwrap();
+        assert_eq!{
+            pick_rows(&b, &[0, 2]),
+            array![[1, 2, 3], [7, 8, 9]]
+        };
+    }
 
-//     #[test]
-//     fn test_pick_columns() {
-//         let w = Matrix2x3::from_row_slice(&[1., 2., 3.,
-//                                             4., 5., 6.]);
-//         let pw = pick_columns(&w, &[0, 2]);
-//         assert_eq!(pw[(0, 0)], 1.);
-//         assert_eq!(pw[(0, 1)], 3.);
-//         assert_eq!(pw[(1, 0)], 4.);
-//         assert_eq!(pw[(1, 1)], 6.);
-//     }
-
-//     #[test]
-//     fn test_pick_rows() {
-//         let w = Matrix3::from_row_slice(&[1., 2., 3.,
-//                                           4., 5., 6.,
-//                                           7., 8., 9.]);
-//         let pw = pick_rows(&w, &[0, 2]);
-//         assert_eq!(pw[(0, 0)], 1.);
-//         assert_eq!(pw[(0, 1)], 2.);
-//         assert_eq!(pw[(0, 2)], 3.);
-//         assert_eq!(pw[(1, 0)], 7.);
-//         assert_eq!(pw[(1, 1)], 8.);
-//         assert_eq!(pw[(1, 2)], 9.);
-//     }
-
+    #[test]
+    fn test_softmax_rowwise() {
+        let x = array![[1., 2., 3.], [2., 2., 2.], [20., 5., 1.]];
+        let y = softmax_rowwise(&x);
+        for r in y.genrows() {
+            assert_relative_eq!(r.scalar_sum(), 1.0);
+        }
+    }
 }
